@@ -67,3 +67,41 @@ Upstream: fl4p/batmon-ha
 История по умолчанию хранится 72 часа.
 
 Runtime-файлы `state.json` и `jk_log.csv` в Git не сохраняются.
+
+## MQTT settings from Web UI
+
+Веб-интерфейс позволяет изменять:
+
+- MQTT broker
+- MQTT port
+- MQTT user
+- MQTT password
+- sample period
+- publish period
+- invert current
+- BLE keep_alive
+
+MQTT prefix отображается только для чтения, потому что его
+используют Home Assistant и Rapid SCADA.
+
+Текущий MQTT password через API браузеру не передаётся.
+Пустое поле пароля при сохранении означает:
+"оставить существующий пароль".
+
+Перед применением выполняется:
+
+1. проверка параметров;
+2. тест подключения к MQTT;
+3. backup options.json;
+4. атомарная запись нового options.json;
+5. restart batmon-jk-bms.service;
+6. ожидание новых данных JK BMS.
+
+Если новые данные не появляются, выполняется rollback
+предыдущего options.json и повторный запуск BatMON.
+
+Runtime backup-файлы:
+
+`/opt/batmon-ha/config-backups/`
+
+не хранятся в Git.

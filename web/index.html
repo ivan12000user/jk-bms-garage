@@ -192,6 +192,114 @@ canvas {
       repeat(2,1fr);
   }
 }
+
+.settings-grid {
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fit,minmax(210px,1fr));
+  gap:12px;
+}
+
+.field label {
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:5px;
+}
+
+.field input[type="text"],
+.field input[type="password"],
+.field input[type="number"] {
+  width:100%;
+  background:var(--card2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:10px 11px;
+  font:inherit;
+}
+
+.field input[readonly] {
+  opacity:.7;
+}
+
+.toggle-row {
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+
+.toggle-row label {
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.buttons {
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin-top:15px;
+}
+
+.btn {
+  border:0;
+  border-radius:9px;
+  padding:10px 15px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+}
+
+.btn-test {
+  background:var(--card2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+
+.btn-save {
+  background:var(--accent);
+  color:#07121e;
+}
+
+.btn:disabled {
+  opacity:.5;
+  cursor:wait;
+}
+
+.config-result {
+  margin-top:12px;
+  padding:10px;
+  border-radius:9px;
+  display:none;
+}
+
+.config-result.ok {
+  display:block;
+  background:rgba(67,196,119,.12);
+  color:var(--good);
+}
+
+.config-result.err {
+  display:block;
+  background:rgba(229,91,100,.12);
+  color:var(--bad);
+}
+
+.service-status {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:14px;
+}
+
+.warning {
+  margin-top:10px;
+  color:var(--warn);
+  font-size:13px;
+}
+
 </style>
 </head>
 
@@ -348,6 +456,148 @@ canvas {
   <h2>Ключи BMS</h2>
   <div id="switches"
        class="badges"></div>
+</div>
+
+
+
+<div class="section card"
+     id="mqttSettings">
+
+  <h2>Настройки MQTT</h2>
+
+  <div class="service-status">
+    <span id="batmonStatus"
+          class="badge">
+      BatMON: —
+    </span>
+
+    <span id="mqttStatus"
+          class="badge">
+      MQTT: —
+    </span>
+
+    <span id="dataStatus"
+          class="badge">
+      данные JK: —
+    </span>
+  </div>
+
+  <div class="settings-grid">
+
+    <div class="field">
+      <label>MQTT broker</label>
+      <input id="cfgBroker"
+             type="text">
+    </div>
+
+    <div class="field">
+      <label>Порт</label>
+      <input id="cfgPort"
+             type="number"
+             min="1"
+             max="65535">
+    </div>
+
+    <div class="field">
+      <label>Пользователь</label>
+      <input id="cfgUser"
+             type="text"
+             autocomplete="username">
+    </div>
+
+    <div class="field">
+      <label>
+        Новый пароль
+        (пусто = оставить прежний)
+      </label>
+
+      <input id="cfgPassword"
+             type="password"
+             autocomplete="new-password"
+             placeholder="••••••••">
+
+      <div class="small"
+           id="passwordState">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>
+        MQTT prefix
+      </label>
+
+      <input id="cfgPrefix"
+             type="text"
+             readonly>
+    </div>
+
+    <div class="field">
+      <label>
+        Период опроса BMS, с
+      </label>
+
+      <input id="cfgSample"
+             type="number"
+             min="2"
+             max="3600"
+             step="1">
+    </div>
+
+    <div class="field">
+      <label>
+        Период публикации MQTT, с
+      </label>
+
+      <input id="cfgPublish"
+             type="number"
+             min="2"
+             max="3600"
+             step="1">
+    </div>
+
+  </div>
+
+  <div class="toggle-row">
+
+    <label>
+      <input id="cfgInvert"
+             type="checkbox">
+      + заряд / − разряд
+    </label>
+
+    <label>
+      <input id="cfgKeepAlive"
+             type="checkbox">
+      BLE keep_alive
+    </label>
+
+  </div>
+
+  <div class="warning">
+    MQTT prefix пока заблокирован для изменения:
+    его используют Home Assistant и Rapid SCADA.
+  </div>
+
+  <div class="buttons">
+
+    <button id="btnMqttTest"
+            class="btn btn-test"
+            onclick="testMqtt()">
+      Проверить MQTT
+    </button>
+
+    <button id="btnConfigSave"
+            class="btn btn-save"
+            onclick="saveConfig()">
+      Сохранить и перезапустить BatMON
+    </button>
+
+  </div>
+
+  <div id="configResult"
+       class="config-result">
+  </div>
+
 </div>
 
 
@@ -661,6 +911,280 @@ function drawChart(canvas, rows, key) {
 }
 
 
+
+function setConfigMessage(ok, text) {
+  const e = $("configResult");
+
+  e.className =
+    "config-result "
+    + (ok ? "ok" : "err");
+
+  e.textContent = text;
+}
+
+
+function setBusy(busy) {
+  $("btnMqttTest").disabled = busy;
+  $("btnConfigSave").disabled = busy;
+}
+
+
+async function loadConfig() {
+  try {
+    const r = await fetch(
+      "/api/config?t=" + Date.now(),
+      {cache:"no-store"}
+    );
+
+    const c = await r.json();
+
+    $("cfgBroker").value =
+      c.mqtt_broker ?? "";
+
+    $("cfgPort").value =
+      c.mqtt_port ?? 1883;
+
+    $("cfgUser").value =
+      c.mqtt_user ?? "";
+
+    $("cfgPrefix").value =
+      c.mqtt_prefix ?? "";
+
+    $("cfgSample").value =
+      c.sample_period ?? 20;
+
+    $("cfgPublish").value =
+      c.publish_period ?? 20;
+
+    $("cfgInvert").checked =
+      !!c.invert_current;
+
+    $("cfgKeepAlive").checked =
+      !!c.keep_alive;
+
+    $("passwordState").textContent =
+      c.mqtt_password_set
+        ? "Текущий пароль задан"
+        : "Пароль не задан";
+
+  } catch(e) {
+    setConfigMessage(
+      false,
+      "Ошибка чтения конфигурации: " + e
+    );
+  }
+}
+
+
+function configPayload() {
+  return {
+    mqtt_broker:
+      $("cfgBroker").value.trim(),
+
+    mqtt_port:
+      Number($("cfgPort").value),
+
+    mqtt_user:
+      $("cfgUser").value.trim(),
+
+    mqtt_password:
+      $("cfgPassword").value,
+
+    sample_period:
+      Number($("cfgSample").value),
+
+    publish_period:
+      Number($("cfgPublish").value),
+
+    invert_current:
+      $("cfgInvert").checked,
+
+    keep_alive:
+      $("cfgKeepAlive").checked
+  };
+}
+
+
+async function configPost(path) {
+  const r = await fetch(
+    path,
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":
+          "application/json",
+
+        "X-JK-Config":"1"
+      },
+
+      body:JSON.stringify(
+        configPayload()
+      )
+    }
+  );
+
+  let data;
+
+  try {
+    data = await r.json();
+  } catch(e) {
+    throw new Error(
+      "Некорректный ответ сервера"
+    );
+  }
+
+  if (!r.ok || !data.ok) {
+    throw new Error(
+      data.message
+      || ("HTTP " + r.status)
+    );
+  }
+
+  return data;
+}
+
+
+async function testMqtt() {
+  setBusy(true);
+
+  setConfigMessage(
+    true,
+    "Проверяем соединение с MQTT..."
+  );
+
+  try {
+    const r = await configPost(
+      "/api/mqtt/test"
+    );
+
+    setConfigMessage(
+      true,
+      "MQTT: соединение успешно — "
+      + r.message
+    );
+
+    await loadSystemStatus();
+
+  } catch(e) {
+    setConfigMessage(
+      false,
+      "MQTT: " + e.message
+    );
+  }
+
+  setBusy(false);
+}
+
+
+async function saveConfig() {
+  if (!confirm(
+    "Сохранить настройки и "
+    + "перезапустить BatMON?"
+  )) {
+    return;
+  }
+
+  setBusy(true);
+
+  setConfigMessage(
+    true,
+    "Проверяем MQTT и применяем настройки. "
+    + "Это может занять до минуты..."
+  );
+
+  try {
+    const r = await configPost(
+      "/api/config"
+    );
+
+    $("cfgPassword").value = "";
+
+    let text =
+      r.message || "Настройки применены";
+
+    if (r.backup) {
+      text +=
+        ". Backup: " + r.backup;
+    }
+
+    setConfigMessage(
+      true,
+      text
+    );
+
+    await loadConfig();
+    await loadSystemStatus();
+
+  } catch(e) {
+    setConfigMessage(
+      false,
+      "Настройки НЕ применены: "
+      + e.message
+    );
+  }
+
+  setBusy(false);
+}
+
+
+function statusBadge(
+  element,
+  prefix,
+  ok,
+  extra=""
+) {
+  element.className =
+    "badge " + (ok ? "on" : "off");
+
+  element.textContent =
+    prefix
+    + ": "
+    + (ok ? "OK" : "ОШИБКА")
+    + (extra ? " · " + extra : "");
+}
+
+
+async function loadSystemStatus() {
+  try {
+    const r = await fetch(
+      "/api/status?t=" + Date.now(),
+      {cache:"no-store"}
+    );
+
+    const s = await r.json();
+
+    statusBadge(
+      $("batmonStatus"),
+      "BatMON",
+      !!s.batmon_active
+    );
+
+    statusBadge(
+      $("mqttStatus"),
+      "MQTT",
+      !!s.mqtt_ok,
+      s.mqtt_message || ""
+    );
+
+    const age =
+      s.state_age_sec == null
+        ? ""
+        : s.state_age_sec + " с";
+
+    statusBadge(
+      $("dataStatus"),
+      "данные JK",
+      !!s.state_fresh,
+      age
+    );
+
+  } catch(e) {
+    $("mqttStatus").textContent =
+      "MQTT: ошибка статуса";
+  }
+}
+
+
 async function updateHistory() {
   try {
     const r = await fetch(
@@ -698,6 +1222,8 @@ async function updateHistory() {
 
 
 updateState();
+loadConfig();
+loadSystemStatus();
 updateHistory();
 
 setInterval(
@@ -708,6 +1234,11 @@ setInterval(
 setInterval(
   updateHistory,
   60000
+);
+
+setInterval(
+  loadSystemStatus,
+  30000
 );
 
 window.addEventListener(

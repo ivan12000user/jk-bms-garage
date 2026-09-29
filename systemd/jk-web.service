@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/batmon-ha
-ExecStart=/usr/bin/python3 /opt/batmon-ha/web_server.py
+ExecStart=/opt/batmon-ha/venv/bin/python3 /opt/batmon-ha/web_server.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
