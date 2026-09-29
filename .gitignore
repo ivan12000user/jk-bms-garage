@@ -1,8 +1,15 @@
 # secrets
 options.json
 .env
+.env.*
+!.env.example
 *.secret
 *.key
+*.pem
+*.p12
+*.pfx
+*.htpasswd
+secrets/
 
 # runtime
 state.json
