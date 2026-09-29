@@ -1,0 +1,22 @@
+{
+  "devices": [
+    {
+      "address": "<JK_BMS_MAC>",
+      "type": "jk",
+      "alias": "ivan12000/garage/akb",
+      "adapter": "<BLUETOOTH_ADAPTER_MAC>"
+    }
+  ],
+  "mqtt_broker": "<MQTT_BROKER>",
+  "mqtt_user": "<MQTT_USER>",
+  "mqtt_password": "<MQTT_PASSWORD>",
+  "concurrent_sampling": false,
+  "keep_alive": true,
+  "sample_period": 20,
+  "publish_period": 20,
+  "invert_current": true,
+  "expire_values_after": 30,
+  "verbose_log": true,
+  "watchdog": false,
+  "mqtt_port": 1883
+}

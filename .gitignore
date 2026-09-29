@@ -1,0 +1,23 @@
+# secrets
+options.json
+.env
+*.secret
+*.key
+
+# runtime
+state.json
+*.csv
+*.log
+bms_meter_states.json
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# lab captures / backups
+*.hex
+*.bak
+*.bak_*
+*.tar.gz

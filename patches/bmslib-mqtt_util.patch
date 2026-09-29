@@ -1,0 +1,21 @@
+diff --git a/bmslib/mqtt_util.py b/bmslib/mqtt_util.py
+index ea83fd0..3e46613 100644
+--- a/bmslib/mqtt_util.py
++++ b/bmslib/mqtt_util.py
+@@ -7,6 +7,7 @@ HA mdi: icons https://pictogrammers.com/library/mdi/
+ import asyncio
+ import json
+ import math
++import os
+ import queue
+ import statistics
+ import time
+@@ -310,6 +311,8 @@ def publish_temperatures(client, device_topic, temperatures):
+ def publish_hass_discovery(client, device_topic, expire_after_seconds: int, sample: BmsSample, num_cells,
+                            temperatures,
+                            device_info: DeviceInfo = None):
++    if os.environ.get('BATMON_DISABLE_HA_DISCOVERY') == '1':
++        return
+     discovery_msg = {}
+ 
+     # HA discovery node_id must match [a-zA-Z0-9_-] (no slashes), so flatten
