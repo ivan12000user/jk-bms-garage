@@ -602,7 +602,35 @@ canvas {
 
 
 <div class="section card">
-  <h2>Последние 24 часа</h2>
+  <div style="
+       display:flex;
+       justify-content:space-between;
+       align-items:center;
+       gap:12px;
+       flex-wrap:wrap;
+       margin-bottom:10px">
+
+    <div>
+      <h2 style="margin:0">
+        Последние 24 часа
+      </h2>
+
+      <div class="small"
+           style="margin-top:4px">
+        CSV содержит скользящую историю за последние 72 часа
+      </div>
+    </div>
+
+    <a id="downloadCsv72h"
+       class="btn btn-test"
+       href="/api/history.csv"
+       style="
+         text-decoration:none;
+         display:inline-block">
+      Скачать CSV за 3 суток
+    </a>
+
+  </div>
 
   <div class="charts">
 

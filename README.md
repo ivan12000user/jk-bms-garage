@@ -105,3 +105,21 @@ Runtime backup-файлы:
 `/opt/batmon-ha/config-backups/`
 
 не хранятся в Git.
+
+## CSV export
+
+Веб-интерфейс содержит кнопку:
+
+`Скачать CSV за 3 суток`
+
+Endpoint:
+
+`/api/history.csv`
+
+Файл содержит скользящую историю JK BMS за последние 72 часа.
+
+Runtime CSV:
+
+`/opt/batmon-ha/web/jk_log.csv`
+
+в Git не сохраняется.

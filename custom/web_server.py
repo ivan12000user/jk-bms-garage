@@ -22,6 +22,7 @@ import paho.mqtt.client as mqtt
 WEB_DIR = Path("/opt/batmon-ha/web")
 OPTIONS = Path("/opt/batmon-ha/options.json")
 STATE_FILE = WEB_DIR / "state.json"
+HISTORY_FILE = WEB_DIR / "jk_log.csv"
 BACKUP_DIR = Path("/opt/batmon-ha/config-backups")
 
 LISTEN = "0.0.0.0"
@@ -712,6 +713,51 @@ class Handler(SimpleHTTPRequestHandler):
                     500
                 )
 
+            return
+
+        if path == "/api/history.csv":
+            if not HISTORY_FILE.exists():
+                self.send_json(
+                    {
+                        "ok": False,
+                        "message": "CSV history not found"
+                    },
+                    404
+                )
+                return
+
+            data = HISTORY_FILE.read_bytes()
+
+            filename = (
+                "jk-bms-garage-72h-"
+                + datetime.now().strftime("%Y%m%d_%H%M%S")
+                + ".csv"
+            )
+
+            self.send_response(200)
+
+            self.send_header(
+                "Content-Type",
+                "text/csv; charset=utf-8"
+            )
+
+            self.send_header(
+                "Content-Disposition",
+                f'attachment; filename="{filename}"'
+            )
+
+            self.send_header(
+                "Cache-Control",
+                "no-store"
+            )
+
+            self.send_header(
+                "Content-Length",
+                str(len(data))
+            )
+
+            self.end_headers()
+            self.wfile.write(data)
             return
 
         if path == "/api/status":
