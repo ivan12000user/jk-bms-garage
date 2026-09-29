@@ -51,3 +51,19 @@ Upstream: fl4p/batmon-ha
 
 Сначала клонировать upstream BatMON на commit из
 `upstream/base-commit.txt`, затем применить локальные файлы и patch.
+
+## Web dashboard
+
+Локальная страница:
+
+`http://<orangepizero3>:8088/`
+
+Архитектура:
+
+`BmsSampler -> WebFileSink -> state.json / jk_log.csv -> jk-web.service`
+
+Веб-сервис сам Bluetooth не опрашивает.
+
+История по умолчанию хранится 72 часа.
+
+Runtime-файлы `state.json` и `jk_log.csv` в Git не сохраняются.

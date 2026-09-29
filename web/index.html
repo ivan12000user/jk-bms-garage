@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1">
+
+<title>АКБ гараж — JK BMS</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#101318;
+  --card:#191e25;
+  --card2:#20262e;
+  --text:#eef2f6;
+  --muted:#99a4af;
+  --border:#303946;
+  --good:#43c477;
+  --warn:#f0b44c;
+  --bad:#e55b64;
+  --accent:#5ca8ff;
+}
+
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+main {
+  max-width:1100px;
+  margin:auto;
+  padding:18px;
+}
+
+header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:16px;
+}
+
+h1 {
+  font-size:24px;
+  margin:0 0 5px;
+}
+
+.small {
+  color:var(--muted);
+  font-size:13px;
+}
+
+.status {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+
+.dot {
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:var(--bad);
+}
+
+.dot.ok {
+  background:var(--good);
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;
+}
+
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:15px;
+}
+
+.label {
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.value {
+  font-size:27px;
+  font-weight:650;
+  line-height:1.15;
+}
+
+.unit {
+  font-size:15px;
+  color:var(--muted);
+  font-weight:400;
+}
+
+.section {
+  margin-top:14px;
+}
+
+.section h2 {
+  font-size:17px;
+  margin:0 0 10px;
+}
+
+.cells {
+  display:grid;
+  grid-template-columns:
+    repeat(4,minmax(100px,1fr));
+  gap:9px;
+}
+
+.cell {
+  background:var(--card2);
+  padding:12px;
+  border-radius:10px;
+  text-align:center;
+}
+
+.cell strong {
+  display:block;
+  font-size:21px;
+}
+
+.badges {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+.badge {
+  padding:5px 9px;
+  border-radius:999px;
+  background:var(--card2);
+  font-size:13px;
+}
+
+.badge.on {
+  color:var(--good);
+}
+
+.badge.off {
+  color:var(--muted);
+}
+
+canvas {
+  display:block;
+  width:100%;
+  height:150px;
+  background:var(--card2);
+  border-radius:9px;
+}
+
+.charts {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+
+@media (max-width:600px) {
+  main {
+    padding:11px;
+  }
+
+  h1 {
+    font-size:20px;
+  }
+
+  .value {
+    font-size:23px;
+  }
+
+  .cells {
+    grid-template-columns:
+      repeat(2,1fr);
+  }
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<header>
+  <div>
+    <h1>АКБ гараж — JK BMS</h1>
+    <div class="small" id="updated">
+      ожидание данных...
+    </div>
+  </div>
+
+  <div class="status">
+    <span id="dot" class="dot"></span>
+    <span id="online">нет данных</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="label">SOC</div>
+    <div class="value">
+      <span id="soc">—</span>
+      <span class="unit">%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Напряжение</div>
+    <div class="value">
+      <span id="voltage">—</span>
+      <span class="unit">В</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Ток</div>
+    <div class="value">
+      <span id="current">—</span>
+      <span class="unit">А</span>
+    </div>
+    <div class="small" id="mode">—</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Мощность</div>
+    <div class="value">
+      <span id="power">—</span>
+      <span class="unit">Вт</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Остаток</div>
+    <div class="value">
+      <span id="charge">—</span>
+      <span class="unit">А·ч</span>
+    </div>
+    <div class="small" id="capacity"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">SOH</div>
+    <div class="value">
+      <span id="soh">—</span>
+      <span class="unit">%</span>
+    </div>
+  </div>
+
+</div>
+
+
+<div class="section card">
+
+  <h2>Ячейки</h2>
+
+  <div id="cells" class="cells"></div>
+
+  <div class="small"
+       style="margin-top:10px">
+
+    min:
+    <b id="cellMin">—</b> В ·
+
+    max:
+    <b id="cellMax">—</b> В ·
+
+    Δ:
+    <b id="cellDelta">—</b> В
+
+  </div>
+
+</div>
+
+
+<div class="grid section">
+
+  <div class="card">
+    <div class="label">
+      Ток балансировки
+    </div>
+    <div class="value">
+      <span id="balance">—</span>
+      <span class="unit">А</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Температура 1</div>
+    <div class="value">
+      <span id="temp1">—</span>
+      <span class="unit">°C</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Температура 2</div>
+    <div class="value">
+      <span id="temp2">—</span>
+      <span class="unit">°C</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Температура BMS</div>
+    <div class="value">
+      <span id="mosTemp">—</span>
+      <span class="unit">°C</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Циклы</div>
+    <div class="value">
+      <span id="cycles">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Время работы</div>
+    <div class="value"
+         style="font-size:21px">
+      <span id="uptime">—</span>
+    </div>
+  </div>
+
+</div>
+
+
+<div class="section card">
+  <h2>Ключи BMS</h2>
+  <div id="switches"
+       class="badges"></div>
+</div>
+
+
+<div class="section card">
+  <h2>Последние 24 часа</h2>
+
+  <div class="charts">
+
+    <div>
+      <div class="small">
+        SOC, %
+      </div>
+      <canvas id="chartSoc"></canvas>
+    </div>
+
+    <div>
+      <div class="small">
+        Напряжение, В
+      </div>
+      <canvas id="chartVoltage"></canvas>
+    </div>
+
+    <div>
+      <div class="small">
+        Ток, А
+      </div>
+      <canvas id="chartCurrent"></canvas>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function num(v, d=2) {
+  const n = Number(v);
+  return Number.isFinite(n)
+    ? n.toFixed(d)
+    : "—";
+}
+
+function humanUptime(sec) {
+  sec = Number(sec);
+
+  if (!Number.isFinite(sec)) {
+    return "—";
+  }
+
+  let days = Math.floor(sec / 86400);
+  const months = Math.floor(days / 30);
+
+  days %= 30;
+
+  const hours = Math.floor(
+    (sec % 86400) / 3600
+  );
+
+  if (months > 0) {
+    return `${months} мес. ${days} д. ${hours} ч`;
+  }
+
+  return `${days} д. ${hours} ч`;
+}
+
+async function updateState() {
+  try {
+    const r = await fetch(
+      "state.json?t=" + Date.now(),
+      {cache:"no-store"}
+    );
+
+    if (!r.ok) {
+      throw new Error(r.status);
+    }
+
+    const s = await r.json();
+
+    $("soc").textContent =
+      num(s.soc, 1);
+
+    $("voltage").textContent =
+      num(s.voltage, 2);
+
+    $("current").textContent =
+      num(s.current, 2);
+
+    $("power").textContent =
+      num(s.power, 1);
+
+    $("charge").textContent =
+      num(s.charge, 2);
+
+    $("capacity").textContent =
+      `из ${num(s.capacity, 1)} А·ч`;
+
+    $("soh").textContent =
+      num(s.soh, 1);
+
+    $("balance").textContent =
+      num(s.balance_current, 3);
+
+    const t = s.temperatures || [];
+
+    $("temp1").textContent =
+      num(t[0], 1);
+
+    $("temp2").textContent =
+      num(t[1], 1);
+
+    $("mosTemp").textContent =
+      num(s.mos_temperature, 1);
+
+    $("cycles").textContent =
+      num(s.num_cycles, 0);
+
+    $("uptime").textContent =
+      humanUptime(s.uptime);
+
+    $("cellMin").textContent =
+      num(s.cell_min, 3);
+
+    $("cellMax").textContent =
+      num(s.cell_max, 3);
+
+    $("cellDelta").textContent =
+      num(s.cell_delta, 3);
+
+    const cells = s.cells || [];
+
+    $("cells").innerHTML =
+      cells.map(
+        (v,i) =>
+          `<div class="cell">
+             <span class="small">
+               Ячейка ${i+1}
+             </span>
+             <strong>${num(v,3)} В</strong>
+           </div>`
+      ).join("");
+
+    const sw = s.switches || {};
+
+    $("switches").innerHTML =
+      Object.entries(sw)
+        .map(([k,v]) =>
+          `<span class="badge ${v ? "on":"off"}">
+             ${k}: ${v ? "ON":"OFF"}
+           </span>`
+        ).join("");
+
+    const current = Number(s.current);
+
+    $("mode").textContent =
+      current > 0.1
+        ? "заряд"
+        : current < -0.1
+          ? "разряд"
+          : "буфер / ожидание";
+
+    const age =
+      Date.now()/1000
+      - Number(s.timestamp || 0);
+
+    const ok =
+      Number.isFinite(age)
+      && age < 90;
+
+    $("dot").className =
+      "dot" + (ok ? " ok" : "");
+
+    $("online").textContent =
+      ok ? "онлайн" : "нет свежих данных";
+
+    const dt = new Date(
+      Number(s.timestamp) * 1000
+    );
+
+    $("updated").textContent =
+      "Последнее обновление: "
+      + dt.toLocaleString();
+
+  } catch (e) {
+    $("dot").className = "dot";
+    $("online").textContent =
+      "ошибка данных";
+  }
+}
+
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const head = lines[0].split(",");
+
+  return lines.slice(1).map(line => {
+    const a = line.split(",");
+    const o = {};
+
+    head.forEach(
+      (k,i) => o[k] = a[i]
+    );
+
+    return o;
+  });
+}
+
+
+function drawChart(canvas, rows, key) {
+  const ctx = canvas.getContext("2d");
+
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+
+  const dpr =
+    window.devicePixelRatio || 1;
+
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+
+  const vals = rows
+    .map(r => ({
+      x:Number(r.ts),
+      y:Number(r[key])
+    }))
+    .filter(p =>
+      Number.isFinite(p.x)
+      && Number.isFinite(p.y)
+    );
+
+  if (vals.length < 2) {
+    return;
+  }
+
+  const cutoff =
+    Date.now()/1000 - 86400;
+
+  const p = vals.filter(
+    x => x.x >= cutoff
+  );
+
+  if (p.length < 2) {
+    return;
+  }
+
+  let xmin = p[0].x;
+  let xmax = p[p.length-1].x;
+
+  let ymin = Math.min(
+    ...p.map(x => x.y)
+  );
+
+  let ymax = Math.max(
+    ...p.map(x => x.y)
+  );
+
+  if (ymax === ymin) {
+    ymax += 1;
+    ymin -= 1;
+  }
+
+  const pad = 9;
+
+  ctx.strokeStyle = "#5ca8ff";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+
+  p.forEach((v,i) => {
+    const x =
+      pad
+      + (v.x-xmin)/(xmax-xmin)
+      * (w-2*pad);
+
+    const y =
+      h-pad
+      - (v.y-ymin)/(ymax-ymin)
+      * (h-2*pad);
+
+    if (i === 0) {
+      ctx.moveTo(x,y);
+    } else {
+      ctx.lineTo(x,y);
+    }
+  });
+
+  ctx.stroke();
+
+  ctx.fillStyle = "#99a4af";
+  ctx.font = "11px sans-serif";
+
+  ctx.fillText(
+    ymax.toFixed(2),
+    7,
+    13
+  );
+
+  ctx.fillText(
+    ymin.toFixed(2),
+    7,
+    h-5
+  );
+}
+
+
+async function updateHistory() {
+  try {
+    const r = await fetch(
+      "jk_log.csv?t=" + Date.now(),
+      {cache:"no-store"}
+    );
+
+    if (!r.ok) {
+      return;
+    }
+
+    const rows =
+      parseCsv(await r.text());
+
+    drawChart(
+      $("chartSoc"),
+      rows,
+      "soc"
+    );
+
+    drawChart(
+      $("chartVoltage"),
+      rows,
+      "voltage"
+    );
+
+    drawChart(
+      $("chartCurrent"),
+      rows,
+      "current"
+    );
+
+  } catch(e) {}
+}
+
+
+updateState();
+updateHistory();
+
+setInterval(
+  updateState,
+  5000
+);
+
+setInterval(
+  updateHistory,
+  60000
+);
+
+window.addEventListener(
+  "resize",
+  updateHistory
+);
+</script>
+
+</body>
+</html>

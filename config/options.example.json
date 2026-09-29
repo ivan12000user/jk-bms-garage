@@ -18,5 +18,7 @@
   "expire_values_after": 30,
   "verbose_log": true,
   "watchdog": false,
-  "mqtt_port": 1883
+  "mqtt_port": 1883,
+  "web_dir": "/opt/batmon-ha/web",
+  "web_history_hours": 72
 }

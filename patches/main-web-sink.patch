@@ -1,0 +1,39 @@
+diff --git a/main.py b/main.py
+index 1545fb8..653a319 100644
+--- a/main.py
++++ b/main.py
+@@ -321,6 +321,34 @@ async def main():
+         except Exception as e:
+             logger.warning('Failed to load influxdb sink: %s', e)
+ 
++    web_dir = user_config.get("web_dir")
++    if web_dir:
++        try:
++            from bmslib.web_file_sink import WebFileSink
++
++            sinks.append(
++                WebFileSink(
++                    web_dir=web_dir,
++                    history_hours=float(
++                        user_config.get(
++                            "web_history_hours",
++                            72
++                        )
++                    )
++                )
++            )
++
++            logger.info(
++                "Local web sink enabled: %s",
++                web_dir
++            )
++
++        except Exception as e:
++            logger.error(
++                "Failed to initialize WebFileSink: %s",
++                e
++            )
++
+     if user_config.get("telemetry") == False:
+         logger.debug(
+             "Anonymous telemetry is OFF. If enabled, batmon sends battery "

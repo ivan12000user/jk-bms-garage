@@ -1,0 +1,15 @@
+[Unit]
+Description=JK BMS Garage Web Dashboard
+After=network-online.target batmon-jk-bms.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/batmon-ha
+ExecStart=/usr/bin/python3 /opt/batmon-ha/web_server.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
